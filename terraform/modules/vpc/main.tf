@@ -64,3 +64,45 @@ resource "aws_route_table_association" "public" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
 }
+
+# NAT Gateway (single NAT in first public subnet)
+resource "aws_eip" "nat" {
+  domain = "vpc"
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-eip-nat"
+  })
+}
+
+resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = values(aws_subnet.public)[0].id
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-nat"
+  })
+
+  depends_on = [aws_internet_gateway.this]
+}
+
+# Private route table -> route 0.0.0.0/0 to NAT
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.this.id
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-rt-private"
+  })
+}
+
+resource "aws_route" "private_to_nat" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this.id
+}
+
+resource "aws_route_table_association" "private" {
+  for_each = aws_subnet.private
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private.id
+}
