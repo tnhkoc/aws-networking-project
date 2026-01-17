@@ -25,3 +25,18 @@ module "vpc" {
 
   tags = local.common_tags
 }
+
+module "security_groups" {
+  source = "./modules/security_groups"
+
+  name   = local.name
+  vpc_id = module.vpc.vpc_id
+
+  app_port = 80
+  db_port  = 5432
+
+  # SSH açmak istersen kendi IP'ni /32 verirsin; şimdilik boş bırak (daha güvenli)
+  admin_cidr_blocks = []
+
+  tags = local.common_tags
+}

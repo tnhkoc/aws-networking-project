@@ -13,3 +13,5 @@ terraform.rc
 
 # Plan files
 *.tfplan
+
+.DS_Store
