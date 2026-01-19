@@ -25,3 +25,11 @@ output "app_sg_id" {
 output "db_sg_id" {
   value = module.security_groups.db_sg_id
 }
+
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
+}
+
+output "alb_target_group_arn" {
+  value = module.alb.target_group_arn
+}
