@@ -33,3 +33,11 @@ output "alb_dns_name" {
 output "alb_target_group_arn" {
   value = module.alb.target_group_arn
 }
+
+output "app_instance_id" {
+  value = module.app.instance_id
+}
+
+output "app_private_ip" {
+  value = module.app.private_ip
+}
