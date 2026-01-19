@@ -35,7 +35,6 @@ module "security_groups" {
   app_port = 80
   db_port  = 5432
 
-  # SSH açmak istersen kendi IP'ni /32 verirsin; şimdilik boş bırak (daha güvenli)
   admin_cidr_blocks = []
 
   tags = local.common_tags
@@ -48,6 +47,16 @@ module "alb" {
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
   alb_sg_id         = module.security_groups.alb_sg_id
+
+  tags = local.common_tags
+}
+
+module "app" {
+  source = "./modules/app_ec2"
+
+  name      = local.name
+  subnet_id = module.vpc.private_subnet_ids[0] # şimdilik 1 instance
+  app_sg_id = module.security_groups.app_sg_id
 
   tags = local.common_tags
 }
