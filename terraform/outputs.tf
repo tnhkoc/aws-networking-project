@@ -41,3 +41,7 @@ output "app_instance_id" {
 output "app_private_ip" {
   value = module.app.private_ip
 }
+
+output "db_subnet_group_name" {
+  value = aws_db_subnet_group.this.name
+}
