@@ -29,10 +29,10 @@ resource "aws_instance" "this" {
     Name = "${var.name}-app"
   })
   metadata_options {
-  http_tokens = "required"
+    http_tokens = "required"
   }
   root_block_device {
-    encrypted = true
+    encrypted   = true
     volume_type = "gp3"
   }
 }
