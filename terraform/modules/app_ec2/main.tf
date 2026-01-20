@@ -28,4 +28,11 @@ resource "aws_instance" "this" {
   tags = merge(var.tags, {
     Name = "${var.name}-app"
   })
+  metadata_options {
+    http_tokens = "required"
+  }
+  root_block_device {
+    encrypted   = true
+    volume_type = "gp3"
+  }
 }
