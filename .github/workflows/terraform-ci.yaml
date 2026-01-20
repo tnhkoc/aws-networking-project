@@ -39,3 +39,8 @@ jobs:
         run: |
           tflint --init
           tflint -f compact  
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform    
