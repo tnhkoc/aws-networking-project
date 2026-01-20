@@ -1,7 +1,11 @@
+# tfsec:ignore:aws-elb-alb-not-public -- Internet-facing ALB is intentional for this reference architecture.
+
 resource "aws_lb" "this" {
   name               = "${var.name}-alb"
   load_balancer_type = "application"
   internal           = false
+
+  drop_invalid_header_fields = true
 
   security_groups = [var.alb_sg_id]
   subnets         = var.public_subnet_ids
@@ -32,6 +36,8 @@ resource "aws_lb_target_group" "app" {
     Name = "${var.name}-tg-app"
   })
 }
+
+# tfsec:ignore:aws-elb-http-not-used -- Demo: HTTP listener used for simple curl validation; HTTPS would require ACM cert + domain.
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn

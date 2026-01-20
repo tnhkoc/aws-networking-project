@@ -28,4 +28,7 @@ resource "aws_instance" "this" {
   tags = merge(var.tags, {
     Name = "${var.name}-app"
   })
+  metadata_options {
+    http_tokens = "required"
+  }
 }
