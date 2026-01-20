@@ -16,7 +16,7 @@ module "vpc" {
 
   name = local.name
 
-  vpc_cidr = "10.0.0.0/16"
+  vpc_cidr = var.vpc_cidr
 
   azs = slice(data.aws_availability_zones.available.names, 0, 2)
 
@@ -32,8 +32,8 @@ module "security_groups" {
   name   = local.name
   vpc_id = module.vpc.vpc_id
 
-  app_port = 80
-  db_port  = 5432
+  app_port = var.app_port
+  db_port  = var.db_port
 
   admin_cidr_blocks = []
 
@@ -57,6 +57,23 @@ module "app" {
   name      = local.name
   subnet_id = module.vpc.private_subnet_ids[0] # şimdilik 1 instance
   app_sg_id = module.security_groups.app_sg_id
+
+  tags = local.common_tags
+}
+
+module "nacls" {
+  source = "./modules/nacls"
+
+  name = local.name
+
+  vpc_id   = module.vpc.vpc_id
+  vpc_cidr = var.vpc_cidr
+
+  public_subnet_ids  = module.vpc.public_subnet_ids
+  private_subnet_ids = module.vpc.private_subnet_ids
+
+  app_port = var.app_port
+  db_port  = var.db_port
 
   tags = local.common_tags
 }
