@@ -9,9 +9,7 @@ resource "aws_network_acl" "public" {
   })
 }
 
-# tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer.
-
-# Inbound: HTTP 80 from Internet
+#tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer. Inbound: HTTP 80 from Internet
 resource "aws_network_acl_rule" "public_in_http" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 100
@@ -23,9 +21,7 @@ resource "aws_network_acl_rule" "public_in_http" {
   to_port        = 80
 }
 
-# tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer.
-
-# Inbound: HTTPS 443 from Internet (future-proof)
+#tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer. HTTPS 443 from Internet (future-proof)
 resource "aws_network_acl_rule" "public_in_https" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 110
@@ -37,9 +33,7 @@ resource "aws_network_acl_rule" "public_in_https" {
   to_port        = 443
 }
 
-# tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer.
-
-# Inbound: Ephemeral ports for return traffic
+#tfsec:ignore:aws-ec2-no-public-ingress-acl -- Public subnet NACL allows inbound for internet-facing ALB; access is controlled at SG layer. Ephemeral ports for return traffic
 resource "aws_network_acl_rule" "public_in_ephemeral" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 120
