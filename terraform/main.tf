@@ -54,9 +54,10 @@ module "alb" {
 module "app" {
   source = "./modules/app_ec2"
 
-  name      = local.name
-  subnet_id = module.vpc.private_subnet_ids[0] # şimdilik 1 instance
-  app_sg_id = module.security_groups.app_sg_id
+  name                      = local.name
+  subnet_id                 = module.vpc.private_subnet_ids[0] # şimdilik 1 instance
+  app_sg_id                 = module.security_groups.app_sg_id
+  iam_instance_profile_name = aws_iam_instance_profile.app_ssm.name
 
   tags = local.common_tags
 }
