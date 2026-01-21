@@ -12,16 +12,19 @@ permissions:
   pull-requests: write
 
 env:
-  TF_IN_AUTOMATION: "true"
   INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+  TF_IN_AUTOMATION: "true"
 
 jobs:
   infracost:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # --- BASE branch cost snapshot ---
+      - name: Checkout base
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -31,30 +34,55 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      - name: Terraform init (no backend)
-        working-directory: terraform
-        run: terraform init -backend=false
-
-      # Plan üret: Infracost'un fiyat çıkarması için en sağlam input bu
-      - name: Terraform plan (JSON)
+      - name: Disable backend for CI (base)
         working-directory: terraform
         run: |
-          terraform plan -out tfplan -input=false -no-color
-          terraform show -json tfplan > /tmp/tfplan.json
+          if [ -f backend.tf ]; then mv backend.tf backend.tf.ci-disabled; fi
 
-      # Infracost breakdown: terraform plan JSON üzerinden
-      - name: Infracost breakdown
+      - name: Terraform init/validate (base)
+        working-directory: terraform
         run: |
-          infracost breakdown \
-            --path /tmp/tfplan.json \
+          terraform init -backend=false
+          terraform validate
+
+      - name: Infracost breakdown (base)
+        working-directory: terraform
+        run: infracost breakdown --path . --format json --out-file /tmp/infracost-base.json
+
+      # --- HEAD branch cost snapshot ---
+      - name: Checkout head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Disable backend for CI (head)
+        working-directory: terraform
+        run: |
+          if [ -f backend.tf ]; then mv backend.tf backend.tf.ci-disabled; fi
+
+      - name: Terraform init/validate (head)
+        working-directory: terraform
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Infracost breakdown (head)
+        working-directory: terraform
+        run: infracost breakdown --path . --format json --out-file /tmp/infracost.json
+
+      # --- DIFF + PR comment ---
+      - name: Infracost diff
+        run: |
+          infracost diff \
+            --path /tmp/infracost.json \
+            --compare-to /tmp/infracost-base.json \
             --format json \
-            --out-file /tmp/infracost.json
+            --out-file /tmp/infracost-diff.json
 
-      # PR comment: tutarları burada basar
       - name: Post Infracost comment to PR
         run: |
           infracost comment github \
-            --path /tmp/infracost.json \
+            --path /tmp/infracost-diff.json \
             --repo "$GITHUB_REPOSITORY" \
             --pull-request "${{ github.event.pull_request.number }}" \
             --github-token "${{ secrets.GITHUB_TOKEN }}" \
