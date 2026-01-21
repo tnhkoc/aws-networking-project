@@ -1,0 +1,40 @@
+name: Infracost
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate cost estimate
+        run: |
+          cd terraform
+          terraform init -backend=false
+          infracost breakdown --path . --format json --out-file /tmp/infracost.json
+
+      - name: Post Infracost comment
+        uses: infracost/actions/comment@v3
+        with:
+          path: /tmp/infracost.json
+          behavior: update
