@@ -14,4 +14,7 @@ terraform.rc
 # Plan files
 *.tfplan
 
+# local backend config with real values
+backend.hcl
+
 .DS_Store
