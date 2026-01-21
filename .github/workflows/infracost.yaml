@@ -1,0 +1,76 @@
+name: Infracost PR cost estimate
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/infracost.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout PR branch
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Terraform init (no backend) - PR
+        working-directory: terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate (PR)
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Generate Infracost breakdown (PR)
+        working-directory: terraform
+        run: infracost breakdown --path . --format json --out-file /tmp/infracost-pr.json
+
+      # Checkout base (main) into a subfolder
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: base
+          fetch-depth: 0
+
+      - name: Terraform init (no backend) - base
+        working-directory: base/terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate (base)
+        working-directory: base/terraform
+        run: terraform validate
+
+      - name: Generate Infracost breakdown (base)
+        working-directory: base/terraform
+        run: infracost breakdown --path . --format json --out-file /tmp/infracost-base.json
+
+      - name: Generate Infracost diff
+        run: infracost diff --path /tmp/infracost-pr.json --compare-to /tmp/infracost-base.json --format json --out-file /tmp/infracost-diff.json
+
+      - name: Post Infracost comment to PR
+        continue-on-error: true
+        run: |
+          infracost comment github \
+            --path /tmp/infracost-diff.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --pull-request "${{ github.event.pull_request.number }}" \
+            --github-token "${{ secrets.GITHUB_TOKEN }}" \
+            --behavior update
