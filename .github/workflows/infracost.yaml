@@ -4,20 +4,20 @@ on:
   pull_request:
     paths:
       - "terraform/**"
-      - ".github/workflows/infracost.yaml"
+      - ".github/workflows/infracost.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
 
+env:
+  TF_IN_AUTOMATION: "true"
+  INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
 jobs:
   infracost:
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: eu-central-1
-      TF_VAR_aws_region: eu-central-1
-      INFRACOST_CURRENCY: USD
 
     steps:
       - name: Checkout
@@ -35,21 +35,26 @@ jobs:
         working-directory: terraform
         run: terraform init -backend=false
 
-      - name: Terraform validate
+      # Plan üret: Infracost'un fiyat çıkarması için en sağlam input bu
+      - name: Terraform plan (JSON)
         working-directory: terraform
-        run: terraform validate
+        run: |
+          terraform plan -out tfplan -input=false -no-color
+          terraform show -json tfplan > /tmp/tfplan.json
 
-      - name: Generate Infracost breakdown
-        working-directory: terraform
-        run: infracost breakdown --path . --format json --out-file /tmp/infracost.json
+      # Infracost breakdown: terraform plan JSON üzerinden
+      - name: Infracost breakdown
+        run: |
+          infracost breakdown \
+            --path /tmp/tfplan.json \
+            --format json \
+            --out-file /tmp/infracost.json
 
-      - name: Render Infracost comment
-        run: infracost output --path /tmp/infracost.json --format github-comment --out-file /tmp/infracost.md
-
+      # PR comment: tutarları burada basar
       - name: Post Infracost comment to PR
         run: |
           infracost comment github \
-            --path /tmp/infracost.md \
+            --path /tmp/infracost.json \
             --repo "$GITHUB_REPOSITORY" \
             --pull-request "${{ github.event.pull_request.number }}" \
             --github-token "${{ secrets.GITHUB_TOKEN }}" \
