@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "terraform/**"
-      - ".github/workflows/infracost.yml"
+      - ".github/workflows/infracost.yaml"
   workflow_dispatch:
 
 permissions:
