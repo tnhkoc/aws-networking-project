@@ -159,6 +159,7 @@ resource "aws_network_acl_rule" "private_out_ephemeral" {
 }
 
 # Inbound: Required for NAT return traffic (SSM, yum/dnf, package repos). NACL is stateless.
+#tfsec:ignore:aws-ec2-no-public-ingress-acl -- Private subnet NACL must allow ephemeral inbound for return traffic (stateless NACL) when instances egress via NAT. Security is enforced by SGs; this rule is limited to ephemeral ports only.
 resource "aws_network_acl_rule" "private_in_ephemeral_internet" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 230
