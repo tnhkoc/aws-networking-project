@@ -1,3 +1,9 @@
+locals {
+  tg_base = substr(var.name, 0, 18)
+  tg_hash = substr(md5(var.name), 0, 6)
+  tg_name = "${local.tg_base}-${local.tg_hash}-tg"
+}
+
 # tfsec:ignore:aws-elb-alb-not-public -- Internet-facing ALB is intentional for this reference architecture.
 resource "aws_lb" "this" {
   name               = "${var.name}-alb"
@@ -15,8 +21,8 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "${var.name}-tg-app"
-  port        = 80
+  name        = local.tg_name
+  port        = var.app_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "instance"

@@ -7,3 +7,9 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "app_port" {
+  type        = number
+  description = "Target group port for the application"
+  default     = 80
+}
