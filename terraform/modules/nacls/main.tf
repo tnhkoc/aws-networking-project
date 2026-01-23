@@ -47,7 +47,7 @@ resource "aws_network_acl_rule" "public_in_ephemeral" {
 
 resource "aws_network_acl_rule" "public_out_http" {
   network_acl_id = aws_network_acl.public.id
-  rule_number    = 100
+  rule_number    = 200
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -58,7 +58,7 @@ resource "aws_network_acl_rule" "public_out_http" {
 
 resource "aws_network_acl_rule" "public_out_https" {
   network_acl_id = aws_network_acl.public.id
-  rule_number    = 110
+  rule_number    = 210
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -69,7 +69,7 @@ resource "aws_network_acl_rule" "public_out_https" {
 
 resource "aws_network_acl_rule" "public_out_ephemeral" {
   network_acl_id = aws_network_acl.public.id
-  rule_number    = 120
+  rule_number    = 220
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -80,7 +80,8 @@ resource "aws_network_acl_rule" "public_out_ephemeral" {
 
 # Associate public NACL to public subnets
 resource "aws_network_acl_association" "public" {
-  for_each       = toset(var.public_subnet_ids)
+  for_each = { for idx, id in var.public_subnet_ids : idx => id }
+
   network_acl_id = aws_network_acl.public.id
   subnet_id      = each.value
 }
@@ -94,6 +95,10 @@ resource "aws_network_acl" "private" {
   tags = merge(var.tags, {
     Name = "${var.name}-nacl-private"
   })
+}
+
+locals {
+  vpc_resolver_ip = cidrhost(var.vpc_cidr, 2)
 }
 
 # Inbound: App port from within VPC (ALB -> App, intra-vpc)
@@ -120,21 +125,9 @@ resource "aws_network_acl_rule" "private_in_db" {
   to_port        = var.db_port
 }
 
-# Inbound: Ephemeral ports for return traffic (stateless NACL)
-resource "aws_network_acl_rule" "private_in_ephemeral" {
-  network_acl_id = aws_network_acl.private.id
-  rule_number    = 120
-  egress         = false
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = var.vpc_cidr
-  from_port      = 1024
-  to_port        = 65535
-}
-
 resource "aws_network_acl_rule" "private_out_http" {
   network_acl_id = aws_network_acl.private.id
-  rule_number    = 100
+  rule_number    = 200
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -145,7 +138,7 @@ resource "aws_network_acl_rule" "private_out_http" {
 
 resource "aws_network_acl_rule" "private_out_https" {
   network_acl_id = aws_network_acl.private.id
-  rule_number    = 110
+  rule_number    = 210
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -156,7 +149,7 @@ resource "aws_network_acl_rule" "private_out_https" {
 
 resource "aws_network_acl_rule" "private_out_ephemeral" {
   network_acl_id = aws_network_acl.private.id
-  rule_number    = 120
+  rule_number    = 220
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -165,9 +158,44 @@ resource "aws_network_acl_rule" "private_out_ephemeral" {
   to_port        = 65535
 }
 
+# Inbound: Required for NAT return traffic (SSM, yum/dnf, package repos). NACL is stateless.
+resource "aws_network_acl_rule" "private_in_ephemeral_internet" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 230
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 1024
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "private_out_dns_udp" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 190
+  egress         = true
+  protocol       = "udp"
+  rule_action    = "allow"
+  cidr_block     = "${local.vpc_resolver_ip}/32"
+  from_port      = 53
+  to_port        = 53
+}
+
+resource "aws_network_acl_rule" "private_out_dns_tcp" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 191
+  egress         = true
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "${local.vpc_resolver_ip}/32"
+  from_port      = 53
+  to_port        = 53
+}
+
 # Associate private NACL to private subnets
 resource "aws_network_acl_association" "private" {
-  for_each       = toset(var.private_subnet_ids)
+  for_each = { for idx, id in var.private_subnet_ids : idx => id }
+
   network_acl_id = aws_network_acl.private.id
   subnet_id      = each.value
 }
