@@ -1,4 +1,4 @@
-# Terraform
+# Terraform (anywhere in repo)
 **/.terraform/*
 *.tfstate
 *.tfstate.*
@@ -13,8 +13,11 @@ terraform.rc
 
 # Plan files
 *.tfplan
+tfplan
+*.tfplan.*
 
 # local backend config with real values
 backend.hcl
 
+# macOS
 .DS_Store
