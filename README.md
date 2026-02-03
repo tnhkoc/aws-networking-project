@@ -32,6 +32,8 @@ flowchart LR
 ```
 > Note: This architecture uses SSM without VPC endpoints; the private instance reaches SSM over the internet via NAT (outbound-only).
 
+---
+
 ## 🔐 Security Model & NACL Nuances
 ### Security Groups (Stateful)
 - **ALB SG:** Inbound `80/tcp` from `0.0.0.0/0`. Outbound to App SG on port 80.
@@ -43,6 +45,22 @@ Because NACLs are **stateless**, we explicitly handle **ephemeral return traffic
 - **Private NACL:** 
   - **Inbound:** Allows `app_port` from VPC CIDR and **ephemeral (1024-65535) from 0.0.0.0/0** to permit NAT return traffic.
   - **Outbound:** Allows `80/443` to internet (via NAT) and DNS (`53/udp,tcp`) to the VPC resolver.
+
+---
+
+## 💾 Remote State + Locking
+Backend configuration ensures safe collaboration using an S3 bucket for state storage and a DynamoDB table for locking.
+
+![Terraform S3 State](docs/screenshots/s3-terraform-state.png)
+
+Terraform backend stanza:
+```hcl
+terraform {
+  backend "s3" {}
+}
+```
+
+---
 
 ## 🛠️ Tech Stack
 - **Cloud:** AWS (VPC, ALB, EC2, SSM, S3, DynamoDB)
@@ -64,10 +82,20 @@ Terraform security scanning executed with **tfsec**:
 - **Medium:** 0
 - **Passed:** 28
 
+---
+
 ## 🔧 Setup & Usage
 1. **Initialize:** `terraform init -backend-config=backend.hcl`
 2. **Plan:** `terraform plan`
 3. **Apply:** `terraform apply`
+
+## ✅ Verification
+- Access the application via the ALB DNS name.
+- Verify "Healthy" status in the AWS Target Group console.
+
+![Target Group Health](docs/screenshots/target-group-healthy.png)
+
+- Test shell access via `aws ssm start-session --target <instance_id>`.
 
 ## 🧹 Cleanup
 ```bash
