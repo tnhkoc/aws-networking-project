@@ -34,6 +34,28 @@ flowchart LR
 
 ---
 
+## 📁 Project Structure
+```text
+.
+├── terraform/
+│   ├── modules/
+│   │   ├── alb/
+│   │   ├── app_ec2/
+│   │   ├── nacls/
+│   │   ├── security_groups/
+│   │   └── vpc/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── backend.tf
+│   └── ...
+├── docs/
+│   └── screenshots/
+└── README.md
+```
+
+---
+
 ## 🔐 Security Model & NACL Nuances
 ### Security Groups (Stateful)
 - **ALB SG:** Inbound `80/tcp` from `0.0.0.0/0`. Outbound to App SG on port 80.
